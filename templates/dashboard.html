@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smart Room Operations Console</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260621-digital-sound">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-core">SR</span>
+          <span class="brand-pulse"></span>
+          <span class="brand-dot"></span>
+        </div>
+        <div class="brand-copy">
+          <span class="overline">ESP32 Telemetry Console</span>
+          <h1>Smart Room Safety & Comfort</h1>
+        </div>
+        <div class="topbar-right">
+          <div id="connection" class="connection-pill">Waiting</div>
+          <div class="device-identity">
+            <span>Device</span>
+            <strong>ESP32_ROOM_01</strong>
+          </div>
+          <button id="open-settings" class="icon-button" type="button" aria-label="Open threshold settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 0 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="console-grid">
+        <section class="status-hero status-card">
+          <div class="status-copy">
+            <span class="overline">Room Condition</span>
+            <strong id="room-status">STANDBY</strong>
+            <p id="recommendation">Waiting for the first sensor reading.</p>
+          </div>
+          <div class="status-meta">
+            <div>
+              <span>Last update</span>
+              <strong id="last-update">--</strong>
+            </div>
+            <div>
+              <span>Storage</span>
+              <strong id="record-count">0 records</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="sensor-board" aria-label="Latest sensor readings">
+          <article class="sensor-tile temperature-card">
+            <span>Temperature</span>
+            <strong id="temperature">--</strong>
+            <small>DHT11 · GPIO4</small>
+          </article>
+          <article class="sensor-tile humidity-card">
+            <span>Humidity</span>
+            <strong id="humidity">--</strong>
+            <small>DHT11</small>
+          </article>
+          <article class="sensor-tile gas-card">
+            <span>Gas</span>
+            <strong id="gas">--</strong>
+            <small>MQ-2 · GPIO34</small>
+          </article>
+          <article class="sensor-tile light-card">
+            <span>Light</span>
+            <strong id="light">--</strong>
+            <small>LDR DO · GPIO35</small>
+          </article>
+          <article class="sensor-tile sound-card">
+            <span>Sound</span>
+            <strong id="sound">--</strong>
+            <small>Sound OUT · GPIO32</small>
+          </article>
+        </section>
+
+        <section class="panel trend-panel">
+          <div class="panel-head">
+            <div>
+              <span class="overline">Historical Data</span>
+              <h2>Sensor Trends</h2>
+            </div>
+            <span class="panel-note">SQLite history</span>
+          </div>
+          <div class="trend-grid">
+            <article class="trend-card">
+              <div class="trend-card-head">
+                <span>Temperature</span>
+                <strong id="chart-temp-latest">--</strong>
+              </div>
+              <canvas id="temp-chart" width="420" height="190"></canvas>
+            </article>
+            <article class="trend-card">
+              <div class="trend-card-head">
+                <span>Gas</span>
+                <strong id="chart-gas-latest">--</strong>
+              </div>
+              <canvas id="gas-chart" width="420" height="190"></canvas>
+            </article>
+            <article class="trend-card">
+              <div class="trend-card-head">
+                <span>Light DO</span>
+                <strong id="chart-light-latest">--</strong>
+              </div>
+              <canvas id="light-chart" width="420" height="190"></canvas>
+            </article>
+            <article class="trend-card">
+              <div class="trend-card-head">
+                <span>Sound</span>
+                <strong id="chart-sound-latest">--</strong>
+              </div>
+              <canvas id="sound-chart" width="420" height="190"></canvas>
+            </article>
+          </div>
+        </section>
+
+        <aside class="command-rail">
+          <section class="panel control-panel">
+            <div class="panel-head">
+              <div>
+                <span class="overline">Actuator Output</span>
+                <h2>Control</h2>
+              </div>
+            </div>
+
+            <label class="field-row" for="mode">
+              <span>Mode</span>
+              <select id="mode">
+                <option value="AUTO">AUTO - status based</option>
+                <option value="MANUAL">MANUAL - direct output</option>
+              </select>
+            </label>
+            <p id="mode-help" class="control-hint">AUTO uses sensor status. Relay turns on only when status is CRITICAL.</p>
+
+            <div id="fan-relay-row" class="output-row">
+              <span class="output-led" aria-hidden="true"></span>
+              <span>
+                <strong>Fan relay status</strong>
+                <small id="fan-relay-state">OFF until CRITICAL status</small>
+              </span>
+            </div>
+
+            <label id="relay-control-row" class="switch-row">
+              <input id="relay" type="checkbox">
+              <span>
+                <strong>Relay output</strong>
+                <small id="relay-help">Available in MANUAL mode only</small>
+              </span>
+            </label>
+
+            <label class="switch-row">
+              <input id="buzzer" type="checkbox" checked>
+              <span>
+                <strong id="buzzer-title">Buzzer armed</strong>
+                <small id="buzzer-help">AUTO mode warning and critical alert sound</small>
+              </span>
+            </label>
+
+            <button id="save-control" class="primary-action" type="button">Apply Control</button>
+            <p id="control-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="panel summary-panel">
+            <div class="panel-head">
+              <div>
+                <span class="overline">Stored Summary</span>
+                <h2>Analysis</h2>
+              </div>
+            </div>
+            <dl class="summary-list">
+              <div><dt>Average temp</dt><dd id="avg-temp">--</dd></div>
+              <div><dt>Average humidity</dt><dd id="avg-humidity">--</dd></div>
+              <div><dt>Highest gas</dt><dd id="highest-gas">--</dd></div>
+              <div><dt>Sound triggers</dt><dd id="avg-sound">--</dd></div>
+              <div><dt>Warning events</dt><dd id="warning-count">--</dd></div>
+              <div><dt>Critical events</dt><dd id="critical-count">--</dd></div>
+            </dl>
+          </section>
+        </aside>
+
+        <section class="panel records-panel">
+          <div class="panel-head">
+            <div>
+              <span class="overline">Database Records</span>
+              <h2>Recent SQLite Entries</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Temp</th>
+                  <th>Humidity</th>
+                  <th>Gas</th>
+                  <th>Light</th>
+                  <th>Sound</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="settings-backdrop" class="settings-backdrop" hidden></div>
+    <aside id="settings-drawer" class="settings-drawer" aria-hidden="true" aria-label="Threshold settings">
+      <div class="drawer-head">
+        <div>
+          <span class="overline">Settings Page</span>
+          <h2>Threshold & Device Configuration</h2>
+        </div>
+        <button id="close-settings" class="icon-button" type="button" aria-label="Close settings" title="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form id="settings-form" class="settings-form">
+        <section class="settings-group">
+          <div class="settings-group-head">
+            <span class="overline">Temperature</span>
+            <p>Room comfort limits in Celsius.</p>
+          </div>
+          <div class="settings-pair">
+            <label>Warning <input name="temp_warning" type="number" step="0.1"></label>
+            <label>Critical <input name="temp_critical" type="number" step="0.1"></label>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <div class="settings-group-head">
+            <span class="overline">Gas Level</span>
+            <p>MQ-2 raw ADC thresholds.</p>
+          </div>
+          <div class="settings-pair">
+            <label>Warning <input name="gas_warning" type="number"></label>
+            <label>Critical <input name="gas_critical" type="number"></label>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <div class="settings-group-head">
+            <span class="overline">Device Behavior</span>
+            <p>LDR uses digital output. ESP32 will apply this value on the next command fetch.</p>
+          </div>
+          <label class="segmented-field">
+            <span>LDR dark state</span>
+            <select name="light_low">
+              <option value="1">HIGH = Dark</option>
+              <option value="0">LOW = Dark</option>
+            </select>
+          </label>
+          <label class="segmented-field">
+            <span>Upload interval</span>
+            <div class="inline-input">
+              <input name="upload_interval" type="number" min="1" max="120">
+              <small>seconds</small>
+            </div>
+          </label>
+        </section>
+
+        <button class="primary-action" type="submit">Save Settings</button>
+        <p id="settings-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </aside>
+
+    <script src="{{ url_for('static', filename='app.js') }}?v=20260621-digital-sound"></script>
+  </body>
+</html>
