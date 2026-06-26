@@ -4,14 +4,19 @@ ESP32-based IoT prototype for monitoring room safety and comfort conditions. The
 
 ## Features
 
+- Register and login for dashboard users, with password validation
+- Multi-device dashboard with pairing-code onboarding
 - Live dashboard for latest sensor readings
 - Room status classification: `NORMAL`, `WARNING` and `CRITICAL`
 - Historical charts for temperature, gas, light and sound
+- CSV export for stored sensor history
 - SQLite storage with recent data table and summary values
 - AUTO and MANUAL control for relay and buzzer output
-- Settings drawer for temperature threshold, gas threshold, LDR dark state and upload interval
+- Settings drawer for room name, device name, thresholds, LDR dark state and upload interval
+- ESP32 captive setup portal for Wi-Fi and pairing code configuration
+- Remote WiFi scan, WiFi switch and saved-profile display from the cloud dashboard
 - ESP32 OLED display with sensor, status and connection pages
-- Push button for changing OLED pages
+- Push button for changing OLED pages and long-press Wi-Fi setup reset
 
 ## Project Structure
 
@@ -22,7 +27,7 @@ ESP32-based IoT prototype for monitoring room safety and comfort conditions. The
 ├── SmartRoomSafetyComfort/        ESP32 Arduino sketch
 ├── static/                        Dashboard CSS and JavaScript
 ├── templates/                     Flask HTML template
-├── circuit/                       Circuit diagram assets
+├── circuit/                       Fritzing circuit source and exported diagram image
 └── screenshots/                   Dashboard or testing screenshots
 ```
 
@@ -54,6 +59,8 @@ The relay load should be connected through `COM` and `NO` so the fan or output d
 
 The relay module was powered from 3.3V in the final prototype because it switched more reliably with the ESP32 GPIO14 output.
 
+The Fritzing source file and exported circuit image are stored in `circuit/`.
+
 ## Arduino Setup
 
 Install these libraries from Arduino IDE Library Manager:
@@ -65,21 +72,24 @@ Install these libraries from Arduino IDE Library Manager:
 
 Use `ESP32 Dev Module` or an equivalent ESP32 DevKit board in Arduino IDE.
 
-Create the local Arduino secrets file before uploading:
+The Arduino sketch no longer stores a fixed Wi-Fi SSID, password or laptop IP address in code. On first boot, or after a long press on the push button, the ESP32 starts a setup Wi-Fi network.
 
-```powershell
-Copy-Item .\SmartRoomSafetyComfort\arduino_secrets.example.h .\SmartRoomSafetyComfort\arduino_secrets.h
+1. Upload `SmartRoomSafetyComfort/SmartRoomSafetyComfort.ino`.
+2. Open the cloud dashboard at `https://smartroomsafety.shiebindev.com`.
+3. Register or login, then click **Add Device**.
+4. Copy the pairing code shown by the dashboard.
+5. Connect a phone or laptop to the ESP32 setup WiFi, for example `SmartRoom-Setup-xxxx`.
+6. The captive portal should open automatically. If it does not, open `http://192.168.4.1`.
+7. Select the home WiFi, enter the WiFi password and enter the pairing code.
+8. Save and let the ESP32 restart.
+
+The ESP32 sends the pairing code to the Cloudflare backend:
+
+```text
+https://smartroomsafety.shiebindev.com
 ```
 
-Then edit `SmartRoomSafetyComfort/arduino_secrets.h`:
-
-```cpp
-const char *WIFI_SSID = "YOUR_WIFI_NAME";
-const char *WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-const char *BACKEND_BASE_URL = "http://192.168.1.100:5000";
-```
-
-Do not use `localhost` in the ESP32 code. `localhost` on ESP32 means the ESP32 itself, not the laptop running Flask.
+After successful pairing, the backend returns the device ID and device token. The ESP32 saves WiFi credentials and device credentials in flash memory using `Preferences`, so the user only needs to configure it once unless the WiFi changes.
 
 ## Dashboard Backend
 
@@ -92,22 +102,30 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open the dashboard:
+Open the local dashboard:
 
 ```text
 http://localhost:5000
 ```
 
-Find the laptop IPv4 address for the ESP32 backend URL:
+For a public or long-running demo, set a Flask secret key before starting the server:
 
 ```powershell
-ipconfig
+$env:SMARTROOM_SECRET_KEY="change-this-to-a-long-random-value"
+$env:SMARTROOM_BACKEND_URL="https://smartroomsafety.shiebindev.com"
+python app.py
 ```
 
-Use the IPv4 address on the same Wi-Fi network, for example:
+For a phone or ESP32 outside the laptop, expose the Flask server through Cloudflare Tunnel. The ESP32 sketch already uses the project domain internally, so general users do not type the backend URL during setup.
 
-```cpp
-const char *BACKEND_BASE_URL = "http://192.168.1.100:5000";
+```powershell
+cloudflared tunnel --url http://localhost:5000
+```
+
+For this project, the permanent Cloudflare route should point to the Flask server:
+
+```text
+smartroomsafety.shiebindev.com -> http://localhost:5000
 ```
 
 ## API Endpoints
@@ -115,13 +133,25 @@ const char *BACKEND_BASE_URL = "http://192.168.1.100:5000";
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/` | GET | Web dashboard |
+| `/login` | GET/POST | User login page |
+| `/register` | GET/POST | User registration page |
+| `/api/me` | GET | Current dashboard user |
+| `/api/devices` | GET/POST | List or add owned ESP32 devices |
+| `/api/devices/<device_id>` | PATCH | Update device name and room |
+| `/api/device-pair` | POST | Exchange ESP32 pairing code for device credentials |
 | `/api/sensor-data` | POST | Receive ESP32 sensor data |
 | `/api/latest` | GET | Return latest stored reading |
 | `/api/history` | GET | Return historical readings |
+| `/api/history/export.csv` | GET | Export selected device history |
 | `/api/summary` | GET | Return stored-data summary |
 | `/api/settings` | GET/POST | Read or update thresholds and configuration |
 | `/api/control` | GET/POST | Read or update relay, buzzer and control mode |
 | `/api/device-command` | GET | Plain-text command endpoint for ESP32 |
+| `/api/device-status` | POST | Receive WiFi status, scan results and events |
+| `/api/wifi/scan` | POST | Queue remote WiFi scan |
+| `/api/wifi/connect` | POST | Queue remote WiFi switch |
+| `/api/wifi/reconnect` | POST | Queue reconnect using a WiFi profile saved on ESP32 |
+| `/api/wifi/forget` | POST | Queue saved WiFi deletion |
 
 ## Control Logic
 
@@ -146,5 +176,6 @@ Buzzer enabled   -> buzzer can sound in AUTO, or directly controls buzzer in MAN
 - LDR module behavior in this prototype is `LOW = bright` and `HIGH = dark`.
 - GPIO34 is input-only and is used for MQ-2 analog output.
 - GPIO35 is input-only and is used for LDR digital output.
-- `arduino_secrets.h` is ignored by Git so Wi-Fi credentials are not committed.
+- WiFi passwords are stored locally on the ESP32 after setup. The dashboard only stores SSID names, signal/status data and temporary command state.
+- Device tokens are generated by the backend after pairing. Only token hashes are stored in SQLite.
 - The report files are intentionally excluded from the GitHub repository.

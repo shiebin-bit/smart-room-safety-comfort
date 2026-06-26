@@ -4,6 +4,8 @@ __pycache__/
 
 report/
 logs/
+output/
+.playwright-cli/
 smart_room.db
 *.db
 *.sqlite

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login · Smart Room</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260626-polish">
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <div class="brand-mark auth-logo" aria-hidden="true">
+          <span class="brand-core">SR</span>
+          <span class="brand-pulse"></span>
+          <span class="brand-dot"></span>
+        </div>
+        <span class="overline">Smart Room Safety</span>
+        <h1>Welcome back</h1>
+        <p>Sign in to monitor your rooms, review history and control connected devices.</p>
+        {% if error %}
+          <div class="form-alert">{{ error }}</div>
+        {% endif %}
+        <form class="auth-form" method="post">
+          <label>
+            Email
+            <input name="email" type="email" autocomplete="email" value="{{ email or '' }}" required>
+          </label>
+          <label>
+            Password
+            <span class="password-field">
+              <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" data-toggle-password="login-password" aria-label="Show password">
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.7 18.7 0 0 1-3.1 4.1"></path><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 4.2-.9"></path></svg>
+              </button>
+            </span>
+          </label>
+          <button class="primary-action" type="submit">Login</button>
+        </form>
+        <p class="auth-switch">New user? <a href="{{ url_for('register') }}">Create an account</a></p>
+      </section>
+    </main>
+    <script>
+      document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = document.getElementById(button.dataset.togglePassword);
+          const hidden = input.type === "password";
+          input.type = hidden ? "text" : "password";
+          button.classList.toggle("is-visible", hidden);
+          button.setAttribute("aria-label", hidden ? "Hide password" : "Show password");
+        });
+      });
+    </script>
+  </body>
+</html>

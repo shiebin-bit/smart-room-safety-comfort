@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Smart Room Operations Console</title>
+    <title>Smart Room Safety</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260621-digital-sound">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260626-mobile-header">
   </head>
   <body>
-    <div class="app-shell">
+    <div class="app-shell app-shell-pages">
       <header class="topbar">
         <div class="brand-mark" aria-hidden="true">
           <span class="brand-core">SR</span>
@@ -16,120 +16,285 @@
           <span class="brand-dot"></span>
         </div>
         <div class="brand-copy">
-          <span class="overline">ESP32 Telemetry Console</span>
+          <span class="overline">Cloud Room Monitor</span>
           <h1>Smart Room Safety & Comfort</h1>
         </div>
         <div class="topbar-right">
           <div id="connection" class="connection-pill">Waiting</div>
-          <div class="device-identity">
-            <span>Device</span>
-            <strong>ESP32_ROOM_01</strong>
+          <div id="sync-state" class="sync-pill">Sync idle</div>
+          <div class="user-identity">
+            <span>Signed in</span>
+            <strong id="user-name">User</strong>
           </div>
-          <button id="open-settings" class="icon-button" type="button" aria-label="Open threshold settings" title="Settings">
+          <div class="device-picker">
+            <label for="device-select">Room</label>
+            <select id="device-select" aria-label="Select room device"></select>
+          </div>
+          <button id="add-device" class="icon-button" type="button" aria-label="Add device" title="Add device">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          </button>
+          <button id="open-settings" class="icon-button" type="button" aria-label="Open settings" title="Settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path>
               <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 0 1 7.1 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
             </svg>
           </button>
+          <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
         </div>
       </header>
 
-      <main class="console-grid">
-        <section class="status-hero status-card">
-          <div class="status-copy">
-            <span class="overline">Room Condition</span>
-            <strong id="room-status">STANDBY</strong>
-            <p id="recommendation">Waiting for the first sensor reading.</p>
+      <div class="dashboard-workspace">
+        <aside class="sidebar-nav" aria-label="Dashboard sections">
+          <div class="sidebar-title">
+            <span class="overline">Workspace</span>
+            <strong>Room Console</strong>
           </div>
-          <div class="status-meta">
-            <div>
-              <span>Last update</span>
-              <strong id="last-update">--</strong>
-            </div>
-            <div>
-              <span>Storage</span>
-              <strong id="record-count">0 records</strong>
-            </div>
+          <button class="page-tab active" type="button" data-view="overview">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Z"></path><path d="M14 20h6V4h-6v16Z"></path><path d="M4 20h6v-3H4v3Z"></path></svg>
+            <span>Overview</span>
+          </button>
+          <button class="page-tab" type="button" data-view="history">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="m7 15 4-4 3 3 5-7"></path></svg>
+            <span>History</span>
+          </button>
+          <button class="page-tab" type="button" data-view="devices">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="14" rx="2"></rect><path d="M9 2v3"></path><path d="M15 2v3"></path><path d="M9 19v3"></path><path d="M15 19v3"></path><path d="M9 9h6"></path><path d="M9 13h6"></path></svg>
+            <span>Devices</span>
+          </button>
+          <button class="page-tab" type="button" data-view="wifi">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10a11 11 0 0 1 14 0"></path><path d="M8 13a6.5 6.5 0 0 1 8 0"></path><path d="M11 16a2 2 0 0 1 2 0"></path><path d="M12 19h.01"></path></svg>
+            <span>WiFi</span>
+          </button>
+          <button class="page-tab" type="button" data-view="control">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10"></path><path d="M18 7h2"></path><path d="M4 17h2"></path><path d="M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>
+            <span>Control</span>
+          </button>
+          <button class="page-tab" type="button" data-view="help">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2.1-2.3 3.8"></path><path d="M12 17h.01"></path></svg>
+            <span>Help</span>
+          </button>
+        </aside>
+
+        <main class="page-layout">
+        <section id="view-overview" class="view-panel active">
+          <div id="critical-alert" class="critical-alert" hidden>
+            <strong>Critical room alert</strong>
+            <span id="critical-alert-text">Immediate attention required.</span>
+            <button id="enable-notifications" class="secondary-action compact-action" type="button">Enable Notifications</button>
           </div>
+
+          <section class="status-hero status-card">
+            <div class="status-copy">
+              <span class="overline">Room Condition</span>
+              <strong id="room-status">STANDBY</strong>
+              <p id="recommendation">Waiting for the first sensor reading.</p>
+            </div>
+            <div class="status-meta">
+              <div><span>Selected room</span><strong id="selected-room">--</strong></div>
+              <div><span>Last update</span><strong id="last-update">--</strong></div>
+              <div><span>Storage</span><strong id="record-count">0 records</strong></div>
+            </div>
+          </section>
+
+          <section class="sensor-board" aria-label="Latest sensor readings">
+            <article class="sensor-tile temperature-card"><span>Temperature</span><strong id="temperature">--</strong><small>Room comfort</small></article>
+            <article class="sensor-tile humidity-card"><span>Humidity</span><strong id="humidity">--</strong><small>Air moisture</small></article>
+            <article class="sensor-tile gas-card"><span>Gas</span><strong id="gas">--</strong><small>Safety reading</small></article>
+            <article class="sensor-tile light-card"><span>Light</span><strong id="light">--</strong><small>Bright / dark</small></article>
+            <article class="sensor-tile sound-card"><span>Sound</span><strong id="sound">--</strong><small>Noise trigger</small></article>
+          </section>
+
+          <section class="overview-insights" aria-label="Room safety insights">
+            <article class="health-card">
+              <span class="overline">Health Score</span>
+              <div class="health-score-line"><strong id="health-score">--</strong><small id="health-label">Waiting</small></div>
+              <p id="health-reasons">Waiting for enough device data.</p>
+            </article>
+            <article>
+              <span class="overline">Comfort Score</span>
+              <div class="health-score-line comfort-score-line"><strong id="comfort-score">--</strong><small id="comfort-label">Waiting</small></div>
+              <p>Calculated from temperature, humidity, gas, light, sound and connection state.</p>
+            </article>
+            <article>
+              <span class="overline">Why This Status</span>
+              <strong>Alert explanation</strong>
+              <ul id="alert-reasons" class="insight-list">
+                <li>Waiting for the first sensor reading.</li>
+              </ul>
+            </article>
+            <article>
+              <span class="overline">Recommended Action</span>
+              <strong>What to do next</strong>
+              <ul id="action-recommendations" class="insight-list action-list">
+                <li>No action available yet.</li>
+              </ul>
+            </article>
+          </section>
+
+          <section class="panel summary-panel">
+            <div class="panel-head">
+              <div><span class="overline">Stored Summary</span><h2>Analysis</h2></div>
+            </div>
+            <dl class="summary-list summary-grid">
+              <div><dt>Average temp</dt><dd id="avg-temp">--</dd></div>
+              <div><dt>Average humidity</dt><dd id="avg-humidity">--</dd></div>
+              <div><dt>Highest gas</dt><dd id="highest-gas">--</dd></div>
+              <div><dt>Sound triggers</dt><dd id="avg-sound">--</dd></div>
+              <div><dt>Warning events</dt><dd id="warning-count">--</dd></div>
+              <div><dt>Critical events</dt><dd id="critical-count">--</dd></div>
+              <div><dt>Offline duration</dt><dd id="offline-duration">--</dd></div>
+            </dl>
+          </section>
+          <section class="panel alert-log-panel">
+            <div class="panel-head">
+              <div><span class="overline">Alert Log</span><h2>Recent events</h2></div>
+            </div>
+            <div id="alert-log" class="alert-log"></div>
+          </section>
         </section>
 
-        <section class="sensor-board" aria-label="Latest sensor readings">
-          <article class="sensor-tile temperature-card">
-            <span>Temperature</span>
-            <strong id="temperature">--</strong>
-            <small>DHT11 · GPIO4</small>
-          </article>
-          <article class="sensor-tile humidity-card">
-            <span>Humidity</span>
-            <strong id="humidity">--</strong>
-            <small>DHT11</small>
-          </article>
-          <article class="sensor-tile gas-card">
-            <span>Gas</span>
-            <strong id="gas">--</strong>
-            <small>MQ-2 · GPIO34</small>
-          </article>
-          <article class="sensor-tile light-card">
-            <span>Light</span>
-            <strong id="light">--</strong>
-            <small>LDR DO · GPIO35</small>
-          </article>
-          <article class="sensor-tile sound-card">
-            <span>Sound</span>
-            <strong id="sound">--</strong>
-            <small>Sound OUT · GPIO32</small>
-          </article>
-        </section>
-
-        <section class="panel trend-panel">
-          <div class="panel-head">
-            <div>
-              <span class="overline">Historical Data</span>
-              <h2>Sensor Trends</h2>
+        <section id="view-history" class="view-panel">
+          <section class="panel trend-panel">
+            <div class="panel-head">
+              <div><span class="overline">Historical Data</span><h2>Sensor Trends</h2></div>
+              <div class="history-actions">
+                <label class="history-filter">Range
+                  <select id="history-range">
+                    <option value="1h">Last 1 hour</option>
+                    <option value="24h" selected>Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="all">All data</option>
+                  </select>
+                </label>
+                <a id="export-csv" class="panel-note action-link" href="#">Download CSV</a>
+                <a id="export-summary" class="panel-note action-link" href="#">Summary CSV</a>
+              </div>
             </div>
-            <span class="panel-note">SQLite history</span>
-          </div>
-          <div class="trend-grid">
-            <article class="trend-card">
-              <div class="trend-card-head">
-                <span>Temperature</span>
-                <strong id="chart-temp-latest">--</strong>
-              </div>
-              <canvas id="temp-chart" width="420" height="190"></canvas>
-            </article>
-            <article class="trend-card">
-              <div class="trend-card-head">
-                <span>Gas</span>
-                <strong id="chart-gas-latest">--</strong>
-              </div>
-              <canvas id="gas-chart" width="420" height="190"></canvas>
-            </article>
-            <article class="trend-card">
-              <div class="trend-card-head">
-                <span>Light DO</span>
-                <strong id="chart-light-latest">--</strong>
-              </div>
-              <canvas id="light-chart" width="420" height="190"></canvas>
-            </article>
-            <article class="trend-card">
-              <div class="trend-card-head">
-                <span>Sound</span>
-                <strong id="chart-sound-latest">--</strong>
-              </div>
-              <canvas id="sound-chart" width="420" height="190"></canvas>
-            </article>
-          </div>
+            <div class="trend-grid">
+              <article class="trend-card"><div class="trend-card-head"><span>Temperature</span><strong id="chart-temp-latest">--</strong></div><canvas id="temp-chart" width="420" height="190"></canvas></article>
+              <article class="trend-card"><div class="trend-card-head"><span>Gas</span><strong id="chart-gas-latest">--</strong></div><canvas id="gas-chart" width="420" height="190"></canvas></article>
+              <article class="trend-card"><div class="trend-card-head"><span>Light DO</span><strong id="chart-light-latest">--</strong></div><canvas id="light-chart" width="420" height="190"></canvas></article>
+              <article class="trend-card"><div class="trend-card-head"><span>Sound</span><strong id="chart-sound-latest">--</strong></div><canvas id="sound-chart" width="420" height="190"></canvas></article>
+            </div>
+          </section>
+          <section class="panel records-panel">
+            <div class="panel-head">
+              <div><span class="overline">Database Records</span><h2>Recent SQLite Entries</h2></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Time</th><th>Temp</th><th>Humidity</th><th>Gas</th><th>Light</th><th>Sound</th><th>Status</th></tr>
+                </thead>
+                <tbody id="history-body"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
-        <aside class="command-rail">
+        <section id="view-devices" class="view-panel">
+          <section id="onboarding-panel" class="panel onboarding-panel">
+            <span class="overline">First-Time Setup</span>
+            <h2>Pair a room sensor without typing backend details</h2>
+            <div class="setup-guide-grid">
+              <article>
+                <strong>1. Add device</strong>
+                <p>The cloud dashboard creates a short pairing code for this room.</p>
+              </article>
+              <article>
+                <strong>2. Connect setup WiFi</strong>
+                <p>User joins the ESP32 setup network and the captive portal opens.</p>
+              </article>
+              <article>
+                <strong>3. Enter WiFi and code</strong>
+                <p>The ESP32 pairs with the cloud and saves its credentials automatically.</p>
+              </article>
+            </div>
+            <ol id="setup-progress" class="setup-steps setup-progress">
+              <li data-step="created">Add a device to generate a pairing code.</li>
+              <li data-step="portal">Connect your phone or laptop to <strong>SmartRoom-Setup-xxxx</strong>.</li>
+              <li data-step="pairing">Open <strong>http://192.168.4.1</strong> if the setup page does not appear.</li>
+              <li data-step="online">Select home WiFi, enter password and enter the pairing code.</li>
+            </ol>
+            <button class="primary-action" type="button" data-open-add-device>Add Device</button>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div><span class="overline">Devices</span><h2>Room Sensors</h2></div>
+              <div class="device-actions">
+                <button class="secondary-action compact-action" type="button" data-open-add-device>Add Device</button>
+                <button id="start-delete-devices" class="danger-action compact-action" type="button">Delete Devices</button>
+                <button id="confirm-delete-devices" class="danger-action compact-action" type="button" hidden>Confirm Delete</button>
+                <button id="cancel-delete-devices" class="secondary-action compact-action" type="button" hidden>Cancel</button>
+              </div>
+            </div>
+            <p id="device-delete-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+            <div id="device-list" class="device-list"></div>
+          </section>
+          <section id="pairing-result" class="panel pairing-result" hidden>
+            <span class="overline">Pairing Code</span>
+            <h2 id="pairing-device-name">New room sensor</h2>
+            <div class="pairing-code" id="pairing-code">------</div>
+            <p>Enter this code in the ESP32 setup portal. It expires in 15 minutes.</p>
+            <p class="muted-line">Cloud URL is already built into the device setup: <strong>https://smartroomsafety.shiebindev.com</strong></p>
+          </section>
+        </section>
+
+        <section id="view-wifi" class="view-panel">
+          <section class="panel wifi-panel">
+            <div class="panel-head">
+              <div><span class="overline">WiFi Management</span><h2>Remote Network Setup</h2></div>
+              <button id="scan-wifi" class="secondary-action compact-action" type="button">Scan Networks</button>
+            </div>
+            <div class="wifi-status-grid">
+              <div><span>Current SSID</span><strong id="wifi-current-ssid">--</strong></div>
+              <div><span>Signal</span><strong id="wifi-rssi">--</strong></div>
+              <div><span>Status</span><strong id="wifi-status">--</strong></div>
+              <div><span>Last update</span><strong id="wifi-updated">--</strong></div>
+            </div>
+            <p id="wifi-error" class="action-feedback"></p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><span class="overline">Available Networks</span><h2>Choose WiFi</h2></div>
+            </div>
+            <form id="wifi-connect-form" class="wifi-connect-form">
+              <input type="text" name="wifi_username" autocomplete="username" value="wifi-device" hidden>
+              <label class="wifi-network-field">
+                Network
+                <select id="wifi-network-select" name="ssid"></select>
+              </label>
+              <label class="wifi-password-field">
+                WiFi password
+                <span class="password-field">
+                  <input id="wifi-password" name="password" type="password" autocomplete="new-password">
+                  <button class="password-toggle" type="button" data-toggle-password="wifi-password" aria-label="Show password">
+                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.7 18.7 0 0 1-3.1 4.1"></path><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 4.2-.9"></path></svg>
+                  </button>
+                </span>
+                <small class="field-note">Password is sent as a one-time device command and cleared from this form after submission.</small>
+              </label>
+              <button class="primary-action wifi-connect-action" type="submit">Connect Device to WiFi</button>
+            </form>
+            <div id="wifi-network-list" class="wifi-network-list"></div>
+            <p id="wifi-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><span class="overline">Saved on Device</span><h2>WiFi Profiles</h2></div>
+            </div>
+            <div id="wifi-profile-list" class="wifi-profile-list"></div>
+          </section>
+        </section>
+
+        <section id="view-control" class="view-panel">
           <section class="panel control-panel">
             <div class="panel-head">
-              <div>
-                <span class="overline">Actuator Output</span>
-                <h2>Control</h2>
-              </div>
+              <div><span class="overline">Actuator Output</span><h2>Control</h2></div>
             </div>
-
             <label class="field-row" for="mode">
               <span>Mode</span>
               <select id="mode">
@@ -138,144 +303,193 @@
               </select>
             </label>
             <p id="mode-help" class="control-hint">AUTO uses sensor status. Relay turns on only when status is CRITICAL.</p>
-
             <div id="fan-relay-row" class="output-row">
               <span class="output-led" aria-hidden="true"></span>
-              <span>
-                <strong>Fan relay status</strong>
-                <small id="fan-relay-state">OFF until CRITICAL status</small>
-              </span>
+              <span><strong>Fan relay status</strong><small id="fan-relay-state">OFF until CRITICAL status</small></span>
             </div>
-
             <label id="relay-control-row" class="switch-row">
               <input id="relay" type="checkbox">
-              <span>
-                <strong>Relay output</strong>
-                <small id="relay-help">Available in MANUAL mode only</small>
-              </span>
+              <span><strong>Relay output</strong><small id="relay-help">Available in MANUAL mode only</small></span>
             </label>
-
             <label class="switch-row">
               <input id="buzzer" type="checkbox" checked>
-              <span>
-                <strong id="buzzer-title">Buzzer armed</strong>
-                <small id="buzzer-help">AUTO mode warning and critical alert sound</small>
-              </span>
+              <span><strong id="buzzer-title">Buzzer armed</strong><small id="buzzer-help">AUTO mode warning and critical alert sound</small></span>
             </label>
-
             <button id="save-control" class="primary-action" type="button">Apply Control</button>
+            <button id="wifi-setup-control" class="secondary-action" type="button">Enter Local Setup Mode</button>
+            <div class="command-status">
+              <span>Last command</span>
+              <strong id="last-command-status">No command sent yet</strong>
+            </div>
             <p id="control-feedback" class="action-feedback" role="status" aria-live="polite"></p>
           </section>
-
-          <section class="panel summary-panel">
+          <section class="panel control-guide">
             <div class="panel-head">
-              <div>
-                <span class="overline">Stored Summary</span>
-                <h2>Analysis</h2>
-              </div>
+              <div><span class="overline">Operating Logic</span><h2>What the output does</h2></div>
             </div>
-            <dl class="summary-list">
-              <div><dt>Average temp</dt><dd id="avg-temp">--</dd></div>
-              <div><dt>Average humidity</dt><dd id="avg-humidity">--</dd></div>
-              <div><dt>Highest gas</dt><dd id="highest-gas">--</dd></div>
-              <div><dt>Sound triggers</dt><dd id="avg-sound">--</dd></div>
-              <div><dt>Warning events</dt><dd id="warning-count">--</dd></div>
-              <div><dt>Critical events</dt><dd id="critical-count">--</dd></div>
-            </dl>
+            <div class="logic-stack">
+              <article>
+                <strong>AUTO mode</strong>
+                <p>The dashboard follows sensor status. Relay turns on only during CRITICAL status and the buzzer follows alert settings.</p>
+              </article>
+              <article>
+                <strong>MANUAL mode</strong>
+                <p>User commands are sent to the ESP32 so relay and buzzer can be tested directly from the cloud dashboard.</p>
+              </article>
+              <article>
+                <strong>Setup recovery</strong>
+                <p>Enter Local Setup Mode asks the ESP32 to open its WiFi setup portal again if the network needs to be changed.</p>
+              </article>
+            </div>
           </section>
-        </aside>
-
-        <section class="panel records-panel">
-          <div class="panel-head">
-            <div>
-              <span class="overline">Database Records</span>
-              <h2>Recent SQLite Entries</h2>
+          <section class="panel control-guide control-checklist">
+            <div class="panel-head">
+              <div><span class="overline">Demo Checks</span><h2>Fast validation</h2></div>
             </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Temp</th>
-                  <th>Humidity</th>
-                  <th>Gas</th>
-                  <th>Light</th>
-                  <th>Sound</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="history-body"></tbody>
-            </table>
-          </div>
+            <ul>
+              <li>Switch to MANUAL and turn relay on.</li>
+              <li>Confirm relay indicator changes on the hardware.</li>
+              <li>Return to AUTO before leaving the prototype running.</li>
+            </ul>
+          </section>
         </section>
-      </main>
+
+        <section id="view-help" class="view-panel">
+          <section class="panel help-hero">
+            <div>
+              <span class="overline">Help & Documentation</span>
+              <h2>Smart Room setup guide</h2>
+              <p>Use this page when setting up a new room sensor, changing WiFi or explaining the prototype flow during demo.</p>
+            </div>
+            <div class="help-status-card">
+              <span>Cloud dashboard</span>
+              <strong>smartroomsafety.shiebindev.com</strong>
+              <small>Users manage devices here after login.</small>
+            </div>
+          </section>
+
+          <section class="help-grid">
+            <article class="panel help-card">
+              <span class="overline">First-Time Setup</span>
+              <h3>Pair a new ESP32</h3>
+              <ol>
+                <li>Register or login with an invite code.</li>
+                <li>Go to Devices and click Add Device.</li>
+                <li>Copy the pairing code shown on the device card.</li>
+                <li>Connect to SmartRoom-Setup-xxxx.</li>
+                <li>Open http://192.168.4.1 and enter WiFi details plus pairing code.</li>
+                <li>Reconnect phone or laptop to normal WiFi and wait for Online.</li>
+              </ol>
+            </article>
+
+            <article class="panel help-card">
+              <span class="overline">WiFi Management</span>
+              <h3>Switch network remotely</h3>
+              <ol>
+                <li>Device must already be Online.</li>
+                <li>Click Scan Networks and wait for ESP32 check-in.</li>
+                <li>Select a network, enter password and connect.</li>
+                <li>Use Reconnect on saved profiles when the password is already stored on ESP32.</li>
+                <li>Use Enter Local Setup Mode only for recovery.</li>
+              </ol>
+            </article>
+
+            <article class="panel help-card">
+              <span class="overline">Security</span>
+              <h3>How access is protected</h3>
+              <ul>
+                <li>Registration requires an invite code.</li>
+                <li>Each user only sees their own devices.</li>
+                <li>Pairing codes expire and are cleared after pairing.</li>
+                <li>ESP32 uses a hidden device token after pairing.</li>
+                <li>Saved WiFi passwords stay on the ESP32, not in SQLite.</li>
+              </ul>
+            </article>
+
+            <article class="panel help-card">
+              <span class="overline">Troubleshooting</span>
+              <h3>Common checks</h3>
+              <dl class="help-dl">
+                <div><dt>PAIR 404</dt><dd>Pairing code is wrong, expired or already used. Generate a new device code.</dd></div>
+                <div><dt>PAIR 530</dt><dd>Cloudflare tunnel or Flask backend is not reachable. Check server and tunnel status.</dd></div>
+                <div><dt>No data</dt><dd>Check Serial Monitor for POST status and confirm the device is Online.</dd></div>
+                <div><dt>WiFi scan empty</dt><dd>Wait for the next device check-in after requesting Scan Networks.</dd></div>
+              </dl>
+            </article>
+          </section>
+        </section>
+        </main>
+      </div>
     </div>
 
     <div id="settings-backdrop" class="settings-backdrop" hidden></div>
     <aside id="settings-drawer" class="settings-drawer" aria-hidden="true" aria-label="Threshold settings">
       <div class="drawer-head">
-        <div>
-          <span class="overline">Settings Page</span>
-          <h2>Threshold & Device Configuration</h2>
-        </div>
+        <div><span class="overline">Room Settings</span><h2>Device & Alert Configuration</h2></div>
         <button id="close-settings" class="icon-button" type="button" aria-label="Close settings" title="Close">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-          </svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
         </button>
       </div>
-
       <form id="settings-form" class="settings-form">
         <section class="settings-group">
-          <div class="settings-group-head">
-            <span class="overline">Temperature</span>
-            <p>Room comfort limits in Celsius.</p>
+          <div class="settings-group-head"><span class="overline">Room Device</span><p>Name this sensor in a way that is easy for non-technical users.</p></div>
+          <div class="settings-pair">
+            <label>Device name <input name="device_name" type="text" maxlength="80"></label>
+            <label>Room name <input name="room_name" type="text" maxlength="80"></label>
           </div>
+        </section>
+        <section class="settings-group">
+          <div class="settings-group-head"><span class="overline">Temperature</span><p>Room comfort limits in Celsius.</p></div>
           <div class="settings-pair">
             <label>Warning <input name="temp_warning" type="number" step="0.1"></label>
             <label>Critical <input name="temp_critical" type="number" step="0.1"></label>
           </div>
         </section>
-
         <section class="settings-group">
-          <div class="settings-group-head">
-            <span class="overline">Gas Level</span>
-            <p>MQ-2 raw ADC thresholds.</p>
-          </div>
+          <div class="settings-group-head"><span class="overline">Gas Level</span><p>MQ-2 raw ADC thresholds.</p></div>
           <div class="settings-pair">
             <label>Warning <input name="gas_warning" type="number"></label>
             <label>Critical <input name="gas_critical" type="number"></label>
           </div>
         </section>
-
         <section class="settings-group">
-          <div class="settings-group-head">
-            <span class="overline">Device Behavior</span>
-            <p>LDR uses digital output. ESP32 will apply this value on the next command fetch.</p>
-          </div>
+          <div class="settings-group-head"><span class="overline">Device Behavior</span><p>Advanced behavior used by the ESP32. Changes apply on the next command fetch.</p></div>
           <label class="segmented-field">
             <span>LDR dark state</span>
-            <select name="light_low">
-              <option value="1">HIGH = Dark</option>
-              <option value="0">LOW = Dark</option>
-            </select>
+            <select name="light_low"><option value="1">HIGH = Dark</option><option value="0">LOW = Dark</option></select>
           </label>
           <label class="segmented-field">
             <span>Upload interval</span>
-            <div class="inline-input">
-              <input name="upload_interval" type="number" min="1" max="120">
-              <small>seconds</small>
-            </div>
+            <div class="inline-input"><input name="upload_interval" type="number" min="1" max="120"><small>seconds</small></div>
           </label>
         </section>
-
         <button class="primary-action" type="submit">Save Settings</button>
         <p id="settings-feedback" class="action-feedback" role="status" aria-live="polite"></p>
       </form>
     </aside>
 
-    <script src="{{ url_for('static', filename='app.js') }}?v=20260621-digital-sound"></script>
+    <div id="device-backdrop" class="settings-backdrop" hidden></div>
+    <aside id="device-drawer" class="settings-drawer compact-drawer" aria-hidden="true" aria-label="Add device">
+      <div class="drawer-head">
+        <div><span class="overline">Add Device</span><h2>Generate Pairing Code</h2></div>
+        <button id="close-device" class="icon-button" type="button" aria-label="Close add device" title="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </div>
+      <form id="device-form" class="settings-form">
+        <section class="settings-group">
+          <div class="settings-group-head">
+            <span class="overline">Room Sensor</span>
+            <p>The dashboard will generate the device ID and pairing code. The user only enters the pairing code on the ESP32 setup page.</p>
+          </div>
+          <label class="segmented-field"><span>Device name</span><input name="device_name" type="text" value="Smart Room Sensor" required></label>
+          <label class="segmented-field"><span>Room name</span><input name="room_name" type="text" value="Living Room" required></label>
+        </section>
+        <button class="primary-action" type="submit">Generate Pairing Code</button>
+        <p id="device-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </aside>
+
+    <script src="{{ url_for('static', filename='app.js') }}?v=20260626-insights"></script>
   </body>
 </html>
