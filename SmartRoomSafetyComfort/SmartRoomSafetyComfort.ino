@@ -48,8 +48,8 @@ String backendBaseUrl = DEFAULT_BACKEND_BASE_URL;
 String deviceId = "UNPAIRED";
 String deviceToken = "";
 
-float tempWarningC = 32.0;
-float tempCriticalC = 38.0;
+float tempWarningC = 35.0;
+float tempCriticalC = 40.0;
 
 int gasWarningRaw = 1800;
 int gasCriticalRaw = 2600;
@@ -98,8 +98,11 @@ const unsigned long WIFI_RETRY_INTERVAL_MS = 15000;
 const unsigned long PAIR_RETRY_INTERVAL_MS = 15000;
 const unsigned long STATUS_INTERVAL_MS = 15000;
 const unsigned long BUTTON_DEBOUNCE_MS = 50;
-const unsigned long BUTTON_LONG_PRESS_MS = 3000;
+const unsigned long BUTTON_LONG_PRESS_MS = 8000;
 const int WIFI_PROFILE_COUNT = 6;
+
+void setRelay(bool on);
+void setBuzzer(bool on);
 
 void loadDeviceConfig() {
   preferences.begin("smartroom", true);
@@ -148,6 +151,26 @@ void clearSavedWiFiOnly() {
   preferences.end();
   wifiSsid = "";
   wifiPassword = "";
+}
+
+void factoryResetDevice() {
+  Serial.println("Factory reset requested. Clearing saved WiFi, pairing and device credentials.");
+  WiFi.disconnect(true, true);
+  preferences.begin("smartroom", false);
+  preferences.clear();
+  preferences.end();
+  wifiSsid = "";
+  wifiPassword = "";
+  pairingCode = "";
+  backendBaseUrl = DEFAULT_BACKEND_BASE_URL;
+  deviceId = "UNPAIRED";
+  deviceToken = "";
+  controlMode = "AUTO";
+  manualRelayCommand = false;
+  relayOutputOn = false;
+  buzzerEnabled = true;
+  setRelay(false);
+  setBuzzer(false);
 }
 
 String htmlEscape(const String &value) {
@@ -800,15 +823,17 @@ void handleButton() {
   }
   if (stableButtonState == LOW && !longPressHandled && (millis() - buttonPressedAtMs) >= BUTTON_LONG_PRESS_MS) {
     longPressHandled = true;
-    clearSavedWiFiOnly();
+    factoryResetDevice();
     display.clearDisplay();
     display.setCursor(0, 0);
     display.setTextColor(SSD1306_WHITE);
     display.setTextSize(1);
-    display.println("Button held");
-    display.println("Restart setup mode");
+    display.println("Factory reset");
+    display.println("Saved data cleared");
+    display.println("Restarting...");
+    display.println("Setup mode next");
     display.display();
-    delay(800);
+    delay(1800);
     ESP.restart();
   }
 }
